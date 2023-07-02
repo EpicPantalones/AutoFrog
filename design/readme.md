@@ -8,12 +8,12 @@ Two cages, with misters, lights and fans, all running off 120V AC power. All dev
 ## Description of block diagram
 ![Block Diagram](BlockDiagram.png)
 System has one AC input and one input on the logic bus. Has six AC channel outputs, which will vary in size depending on requirement, as well as two 12v outputs and 1 logic bus for humidity sensing. \
-AC POWER: AC power is received externally from the female AC plug. AC power is split amongst the six channels output and one branch to a 120vAC to 12vDC converter. \
-12v DC POWER: 12vDC power is output from the converter and split into the two 12v channels, as well as a branch for the 12vDC to 5vDC converter. \
-5v DC POWER: 5vDC is output from the converter and used to power the logic element of the relay, the Rpi Zero, and the digital potentiometers, as well as being an ouput on the logic bus to power the humidity sensors.
+**AC POWER:** AC power is received externally from the female AC plug. AC power is split amongst the six channels output and one branch to a 120vAC to 12vDC converter. \
+**12v DC POWER:** 12vDC power is output from the converter and split into the two 12v channels, as well as a branch for the 12vDC to 5vDC converter. \
+**5v DC POWER:** 5vDC is output from the converter and used to power the logic element of the relay, the Rpi Zero, and the digital potentiometers, as well as being an ouput on the logic bus to power the humidity sensors.
 
 ## Purchasing List:
-Current list is being narrowed down through amazon, link here:\
+Current list is being narrowed down through amazon, link here: \
 https://www.amazon.com/hz/wishlist/ls/33Y2IXWOOTIRV/ref=nav_wishlist_lists_3
 
 ## Software Heirarchy
@@ -21,4 +21,4 @@ Interface.py - head of system daemon \
 config/ - contains settings for channels \
 html/ - contains html for web interface \
 css/ - support for index.html \
-[process?] - possible .py for subprocess
+{process?} - possible .py for subprocess
