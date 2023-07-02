@@ -20,7 +20,7 @@ Hopefully this will all be able to fit in a relatively small box. I would like t
 Current list is being narrowed down through amazon, link here: \
 https://www.amazon.com/hz/wishlist/ls/33Y2IXWOOTIRV/ref=nav_wishlist_lists_3
 ### Items
-*(Status of items is either Waiting, Conflict, Approved, Purchased)* \
+*(Status of items is either Waiting, Conflict, Approved, Purchased)*
 - **Rasberry Pi Zero W**: the brains. *Approved*
 - **AZDelivery Humidity Sensor**: measures humidity in the cages to control fan speed. *Waiting*
 - **12v Power Supply**: takes AC power and converts for the fans and logical systems. *Waiting*
