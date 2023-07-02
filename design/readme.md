@@ -9,9 +9,9 @@
 ## Electrical block diagram
 ![Block Diagram](BlockDiagram.png)
 System has one AC input and one input on the logic bus. Has six AC channel outputs, which will vary in size depending on requirement, as well as two 12v outputs and 1 logic bus for humidity sensing. \
-**AC POWER:** AC power is received externally from the female AC plug. AC power is split amongst the six channels output and one branch to a 120vAC to 12vDC converter. \
-**12v DC POWER:** 12vDC power is output from the converter and split into the two 12v channels, as well as a branch for the 12vDC to 5vDC converter. \
-**5v DC POWER:** 5vDC is output from the converter and used to power the logic element of the relay, the Rpi Zero, and the digital potentiometers, as well as being an ouput on the logic bus to power the humidity sensors.
+**AC POWER:** AC power is received externally from the female AC plug. AC power is split amongst the six channels output and one branch to a 120vAC to 12vDC converter. AC outputs are also in standard plug form. \
+**12v DC POWER:** 12vDC power is output from the converter and split into the two 12v channels, each output as a 2-pin BTF-Lightning, as well as a branch for the 12vDC to 5vDC converter. \
+**5v DC POWER:** 5vDC is output from the converter and used to power the logic element of the relay, the Rpi Zero, as well as ouputting on the 3-pin BTF-Lightning to power and receive data for the humidity sensors.
 
 ## Mechanical Design
 Hopefully this will all be able to fit in a relatively small box. I would like to get it 3D printed, and so I will try to compact everything such that it will fit within the bounds of a printer. The box itself can be very simple, and from there I just add some holes for the various inputs and outputs, as well as a removable lid of some sort. Will post 3d sketchs when parts list is more narrowed down.
@@ -19,6 +19,7 @@ Hopefully this will all be able to fit in a relatively small box. I would like t
 ## Purchasing List:
 Current list is being narrowed down through amazon, link here: \
 https://www.amazon.com/hz/wishlist/ls/33Y2IXWOOTIRV/ref=nav_wishlist_lists_3
+
 ### Items
 *(Status of items is either Waiting, Conflict, Approved, Purchased)*
 - **Rasberry Pi Zero W**: the brains. *Approved*
@@ -31,9 +32,8 @@ https://www.amazon.com/hz/wishlist/ls/33Y2IXWOOTIRV/ref=nav_wishlist_lists_3
 - **20 Gauge standard wire**: Used internally to connect elements. *Waiting*
 - **3Dman 15 Rocker**: Used as system input, has a 5A fuse and a rocker switch. Fuse can be swapped for 10A if necessary. *Waiting*
 - **Panel mount AC outlets**: Used as the channel outputs for the 6 AC channels. Positive from the relays, neutral and ground go to the rocker input. *Waiting*
-- **BTF-Lightning connectors**: Used as the connections for the 2 fan channels and the connections to the humidity sensors in combination with the 3 conductor wire. *Waiting*
+- **BTF-Lightning connectors**: Used as the connections for the 2 fan channels and the connections to the humidity sensors in combination with the 3 conductor wire. There are TWO types of BTF connectors: 2-pin for the fans, and 3-pin for the sensors. The disctinction is important because they do NOT run at the same voltages. *Waiting*
 - **Standoffs, Plastic Feet, Suction Cups**: Mechanical. Standoffs for circuitry, plastic feet for the mechanical housing (TBD), and suction cups for the humidity sensors to stick to the glass and stay in place. *Waiting*
-- Need some type of digital pot for the fan speed? Must operate at 12v? it may not work with the logic and the power being at different levels. Perhaps another method is needed.
 
 ## Software Design
 ### Goal
