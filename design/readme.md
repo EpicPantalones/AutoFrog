@@ -19,10 +19,25 @@ Hopefully this will all be able to fit in a relatively small box. I would like t
 ## Purchasing List:
 Current list is being narrowed down through amazon, link here: \
 https://www.amazon.com/hz/wishlist/ls/33Y2IXWOOTIRV/ref=nav_wishlist_lists_3
+### Items
+*(Status of items is either Waiting, Conflict, Approved, Purchased)* \
+- **Rasberry Pi Zero W**: the brains. *Approved*
+- **AZDelivery Humidity Sensor**: measures humidity in the cages to control fan speed. *Waiting*
+- **12v Power Supply**: takes AC power and converts for the fans and logical systems. *Waiting*
+- **12v to 5v Converter**: down-converts the 12V line for Rpi and humidity sensors. *Waiting*
+- **Sunfounder 8 Chn Relay**: Takes in AC or DC power and acts as a digitally controlled switch. *Waiting*
+- **GearIT 16 Gauge Wire**: Used on the AC systems for safety. *Waiting*
+- **20 Gauge 3 conductor wire**: Used to connect the fans and the humidity sensors, since it provides ample weather protection from wet environments. *Waiting*
+- **20 Gauge standard wire**: Used internally to connect elements. *Waiting*
+- **3Dman 15 Rocker**: Used as system input, has a 5A fuse and a rocker switch. Fuse can be swapped for 10A if necessary. *Waiting*
+- **Panel mount AC outlets**: Used as the channel outputs for the 6 AC channels. Positive from the relays, neutral and ground go to the rocker input. *Waiting*
+- **BTF-Lightning connectors**: Used as the connections for the 2 fan channels and the connections to the humidity sensors in combination with the 3 conductor wire. *Waiting*
+- **Standoffs, Plastic Feet, Suction Cups**: Mechanical. Standoffs for circuitry, plastic feet for the mechanical housing (TBD), and suction cups for the humidity sensors to stick to the glass and stay in place. *Waiting*
+- Need some type of digital pot for the fan speed? Must operate at 12v? it may not work with the logic and the power being at different levels. Perhaps another method is needed.
 
 ## Software Design
 ### Goal
-using the interface, user should be able to open the ip address on local network and configure an Rpi Zero via wifi connection. The JS elements in the background of the HTML send requests that the python script running at the other end can pick up and identify which element that the user has interacted with. From there, the python "interface" can interact with the GPIO pins on the RPI to control the relay. There will also be a "subconcious" measurement of the humidity in the system, which will vary the fan speed accordingly. Rpi will be able to send a signal to the digital potentiometer controlling the speed. User can turn fan speed on and off manually through the website, otherwise the values are just controlled by the sensors. The interface python script will run as a daemon so that in the event of a powerloss, the system will come back online in case of a failure. Should there be trouble, user can SSH into Rpi for support. The changing of the config files can be done by SSHing into the Rpi and using the built in python script in the config folder, which will open and rewrite the config files for you.
+using the interface, user should be able to open the ip address on local network and configure an Rpi Zero via browser. The JS elements in the background of the HTML send requests that the python script running at the other end can pick up and identify which element that the user has interacted with. From there, the python "interface" can interact with the GPIO pins on the RPI to control the relay. There will also be a "subconcious" measurement of the humidity in the system, which will vary the fan speed accordingly. Rpi will be able to send a signal to the digital potentiometer controlling the speed. User can turn fan speed on and off manually through the website, otherwise the values are just controlled by the sensors. The interface python script will run as a daemon so that in the event of a powerloss, the system will come back online in case of a failure. Should there be trouble, user can SSH into Rpi for support. The changing of the config files can be done by SSHing into the Rpi and using the built in python script in the config folder, which will open and rewrite the config files for you.
 ### Heirarchy Goal
 Interface.py - head of system daemon \
 config/ - contains settings for channels \
