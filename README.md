@@ -10,6 +10,6 @@ Two cages, with misters, lights and fans, all running off 120V AC power. All dev
 ## Software Heirarchy
 Interface.py - head of system daemon \
 config/ - contains settings for channels \
-html/ - contains html for web interface
-css/ - support for index.html
+html/ - contains html for web interface \
+css/ - support for index.html \
 [process?] - possible .py for subprocess
