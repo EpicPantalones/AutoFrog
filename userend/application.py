@@ -1,21 +1,32 @@
+from time import sleep
 from interpreter import *
 import tkinter as tk
 import threading
 import pygame
 
 '''LOAD SETTINGS'''
-settings = read_settings()
-FONTSIZE = int(settings[0])
+with open("settings.conf","r") as settings:
+    args = settings.read().split()
+    settings = []
+    for i in range(0,len(args)):
+        if i % 2 == 1:
+            settings.append(args[i])
+    FONTSIZE = int(settings[0])
 
 
 '''SOUND EFFECT GENERATION'''
-THREAD_ENABLED = False
+THREAD_ENABLED = True
 def play_sound():
     pygame.mixer.init()
-    pygame.mixer.music.load("soundtrack.wav")
+    pygame.mixer.music.load("resources/soundtrack.wav")
     pygame.mixer.music.play(-1)  # -1 plays the sound on an infinite loop
-    pygame.mixer.music.set_volume(0.5)  # Adjust the volume as needed
 sound_thread = threading.Thread(target=play_sound, daemon=True)
+
+# '''SOCKET_LISTENING'''
+# from socket_server import start_socket_server, handle_client, handle_message
+# host = ""
+# port = 1234
+# socket_thread = threading.Thread(target=start_socket_server, args=(host,port)).start()
 
 '''
 VISUAL / EXTRA COMMANDS
@@ -49,6 +60,7 @@ def submit_input():
         result = interpret(args)
         output_left.insert(tk.END,f"> {result}\n")
     else:
+        # Just post newline
         output_left.insert(tk.END,f">\n")
     
     # Move window to the end of the message
@@ -59,6 +71,8 @@ def submit_input():
 def on_closing():
     print("Closing windows...")
     root.destroy()
+    
+
 '''
 GUI CREATION
 This system sets up the creation of the GUI itself.
@@ -74,7 +88,6 @@ frame_left = tk.Frame(master=root,relief=tk.GROOVE,width=50,height=100)
 frame_right = tk.Frame(master=root,relief=tk.GROOVE,width=50,height=100)
 frame_left.configure(bg='lightblue')
 frame_right.configure(bg='lightblue')
-
 
 '''Left frame inputs'''
 # Entry box for user input 
@@ -96,7 +109,6 @@ frame_buttons_left = tk.Frame(master=frame_left,background='lightblue',height=1)
 output_frame = tk.Text(master=frame_buttons_left,width=5,height=1)
 output_frame.pack()
 
-
 '''Right frame inputs'''
 # Output title box
 title_right = tk.Text(master=frame_right,height=1)
@@ -107,7 +119,6 @@ title_right.bind("<Key>", lambda e: "break") # prevents users from editing textb
 output_right = tk.Text(master=frame_right,height=20,background='lightgray')
 output_right.configure(font=("Arial", FONTSIZE))
 output_right.bind("<Key>", lambda e: "break")
-
 
 '''Packing System'''
 # Pack Left Frame
@@ -122,11 +133,20 @@ frame_right.pack(side=tk.RIGHT,fill="y",expand=True)
 frame_left.pack(side=tk.RIGHT,fill=tk.BOTH,expand=True)
 
 
+'''PRODUCTION'''
 '''Display the GUI'''
 if THREAD_ENABLED:
     sound_thread.start()
 root.mainloop()
-'''Kill sound thread on end'''
+
+'''ON PROGRAM TERMINATION'''
+# Way to stop server???
+
+# Disable music and play closing sound
 if THREAD_ENABLED:
     pygame.mixer.music.stop()
     sound_thread.join()
+    pygame.mixer.music.load("resources/close.wav")
+    pygame.mixer.music.play()
+    sleep(2)
+    

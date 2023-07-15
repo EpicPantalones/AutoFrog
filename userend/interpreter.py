@@ -1,7 +1,7 @@
 from random import randint
 
 KEYWORDS = ["help","new","edit","view","quit","settings","add","remove","set"]
-ERROR_KEY = str(randint(100000000,999999999))
+ERROR_KEY = "vAkEoAYB0pd3nOW8XSOHzxRU87YmEB4KUGoJI1eLnJ7Tk58RPV"
 
 def interpret(args):
     alen = len(args)
@@ -19,7 +19,7 @@ def interpret(args):
                     if args[1] not in KEYWORDS:
                         return f"{args[1]} is not a recognized command. type help for a list of commands."
                     return help_with(args[1])
-            case "new":
+            case "add":
                 return "added"
             case "edit":
                 return "edited"
@@ -49,14 +49,3 @@ def help_with(cmd):
     except KeyError:
         message = "There was an error reading the help menu."
     return message
-
-def read_settings():
-    with open("settings.conf","r") as settings:
-        args = settings.read().split()
-        settings = []
-        for i in range(0,len(args)):
-            if i % 2 == 1:
-                settings.append(args[i])
-        print(settings)
-        return settings
-    
