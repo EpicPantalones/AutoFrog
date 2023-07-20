@@ -30,6 +30,6 @@ hostname = "192.168.50.42"  # Hostname or IP address of the remote server
 username = "ethan"  # Username to connect to the remote server
 private_key_path = "/home/epicpantalones/.ssh/id_rsa"  # Path to your private key file
 local_path = "/home/epicpantalones/Documents/AutoFrog/userend/file_to_copy.txt"  # Path to the local file you want to transfer
-remote_path = "/home/ethan/copied_file.txt"  # Path on the remote server where you want to transfer the file
+remote_path = "/home/ethan/AutoFrog/server/received/file_to_copy.txt"  # Path on the remote server where you want to transfer the file
 
 scp_transfer(hostname, username, private_key_path, local_path, remote_path)

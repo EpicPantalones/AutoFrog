@@ -21,8 +21,8 @@ def send_message(hostname, port, message):
         client_socket.close()
 
 # Usage
-hostname = "localhost"  # Hostname or IP address of the server
+hostname = "192.168.50.42"  # Hostname or IP address of the server
 port = 1234  # Port number that the server is listening on
-message = "This is a test message"  # Test message to send
+message = "read all dir"  # Test message to send
 
 send_message(hostname, port, message)
