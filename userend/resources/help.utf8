@@ -1,0 +1,18 @@
+Welcome to the Aperture Science Frog Connectivity Unit!
+The following tutorial will provide you with everything you need to know in order to use the connectivity unit properly.
+The first thing to note about the ASFCU is that it is a static GUI. What that means is that the screen of the GUI does not update in real time. When selecting files, creating new ones, or uploading, the GUI will not automatically change the screen.
+--- Commands ---
+Let's take a look at the available buttons on the ASFCU:
+  - List: this button will list all the files in the channels directory, which is where the files are stored.
+  - New: this button allows you to create a new file, which comes with the default header. (see below, Files)
+  - File Select: This text box allows you to select a file by typing in its name. If the file does not exist at savetime (see Save), a new file will be created.
+  - Edit: this button will open the file currently listed in the File Select box. You can see what file is open in the output box by looking at the title bar above it. Note that Edit cannot create new files; see New.
+  - Delete: this button will delete the file currently listed in the File Select box.
+  - Save: this button will save the items in the output text box to the file currently listed in the File Select box. If the file name in the titlebar does not match the filename in the File Select box, you can create new files, or override existing ones.
+  - Connect: this button will test and establish connection to the Aperture Science Frog Remote Controlled Monitor System.
+  - Upload: this button will send all the changes made to the ASFRCMS.
+--- Files ---
+The files created by the ASFCU are designed to be assigned to channels, each of which represent a different output. A file should be structured in the following way:
+  - Header: the header is provided by the program, and should not be modified. Its format is: # CHANNEL NAME: <name>
+  - Action Lines: an action line is two arguments: a time, in 24 hr minute format (i.e. 0000 - 2359) followed by either a 0 for off, or a 1 for on.
+  - Comment Lines: any line that is blank or begins with "#" will be ignored.

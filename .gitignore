@@ -4,5 +4,9 @@ __pycache__/
 server/configs/*
 server/received/*
 
-# ignore user generated client files
+#userend ignores
+!userend/channels/
 userend/channels/*
+userend/codechunks/
+userend/manifest
+userend/settings.conf
