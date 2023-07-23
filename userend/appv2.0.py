@@ -109,8 +109,9 @@ def validate_channel_file(lines):
             return f"\"{state}\" is not a valid state; either 0 or 1"
     return None
 
-def validate_assignments__file(lines):
-    if len(lines) != 9:
+def validate_assignments_file(input):
+    lines = [line for line in input if line != ""]
+    if len(lines) != 8:
         return "Wrong number of lines in file"
     else:
         checks = os.listdir(f"{DIR}/channels")
@@ -377,7 +378,7 @@ def on_save_button_click():
         path = f"{DIR}/channels/{filename}"
         lines = content.splitlines()
         if filename == "_assignments_":
-            errormessage = validate_assignments__file(lines)
+            errormessage = validate_assignments_file(lines)
             if errormessage:
                 response = messagebox.askyesno("Compile Error", f"{errormessage}. Reset assigments file?")
                 if response:
