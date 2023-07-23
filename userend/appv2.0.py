@@ -1,4 +1,5 @@
 from resources.config_handler import ConfigHandler
+from resources.client_commands import *
 from tkinter import simpledialog, messagebox
 import tkinter as tk
 from time import sleep
@@ -20,9 +21,11 @@ textColor: str
 textboxColor: str
 buttonColor: str
 hostIP: str
+hostPort: int
 hostUser: str
 privateKey: str
 remotePath: str
+commKey: str
 
 # Default parameters
 default_params = {
@@ -32,9 +35,11 @@ default_params = {
     'textboxColor': "#AE7A38",
     'buttonColor': "#B0B0AA",
     'hostIP': '192.168.50.42',
+    'hostPort': 1234,
     'hostUser': 'ethan',
     'privateKey': '/home/epicpantalones/.ssh/id_rsa',
-    'remotePath': '/home/ethan/AutoFrog/server/received/'
+    'remotePath': '/home/ethan/AutoFrog/server/received/',
+    'commKey': '110011001100110011'
 }
 
 # Read parameters from the configuration file
@@ -43,6 +48,8 @@ for param_name, default_value in default_params.items():
     # Assign the configuration value to the respective parameter
     globals()[param_name] = value
 
+fontsize = int(fontsize)
+hostPort = int(hostPort)
 LEDsize = 2 + fontsize
 
 '''SOUND EFFECT GENERATION'''
@@ -428,43 +435,46 @@ connectLED.pack(side=tk.LEFT, pady=5)
 
 # Create the "Connect" button
 def on_connect_button_click():
-    connectLED.itemconfig(led, fill="green")
-    set_state_var(Upload_Status,True,uploadLED)
-    set_actionbar("Connected.")
+    set_actionbar("Attempting...")
+    if ping_socket(hostIP,hostPort,timeout=5):
+        connectLED.itemconfig(led, fill="green")
+        set_state_var(Connect_Status,True,connectLED)
+        set_actionbar("Connected.")
+    else:
+        connectLED.itemconfig(led, fill="red")
+        set_state_var(Connect_Status,False,connectLED)
+        set_actionbar("Couldn't connect.")
 
 connect_button = tk.Button(servertools, text="Connect", command=on_connect_button_click, bg=buttonColor, highlightthickness=0, font=('Arial', fontsize))
 connect_button.pack(side=tk.LEFT,anchor=tk.SW,padx=5,pady=5)
 
 # Create the "Upload" button
-def scp_transfer(hostname, username, private_key_path, local_path, remote_path):
-    # Create an SSH client
-    ssh_client = paramiko.SSHClient()
-    ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    try:
-        # Load the private key
-        private_key = paramiko.RSAKey.from_private_key_file(private_key_path)
-        # Connect to the SSH server using the private key
-        ssh_client.connect(hostname, username=username, pkey=private_key)
-        # Create an SCP client
-        scp_client = ssh_client.open_sftp()
-        # Perform the SCP transfer
-        scp_client.put(local_path, remote_path)
-        # Close the SCP client
-        scp_client.close()
-    finally:
-        # Close the SSH client
-        ssh_client.close()
-
 def on_upload_button_click():
+    if Connect_Status.get() == False:
+        set_actionbar("Not Connected!")
+        return
     if Upload_Status.get():
         set_actionbar("Nothing to Upload.")
+        set_state_var(Upload_Status,True,uploadLED)
         return
     else:
-        uploads = sorted(os.listdir(f"{DIR}/channels"))
-        for file in uploads:
-            local_path = f"{DIR}/channels/{file}"  # Path to the local file you want to transfer
-            remote_path = f"{remotePath}file_to_copy.txt"  # Path on the remote server where you want to transfer the file
-            scp_transfer(hostIP, hostUser, privateKey, local_path, remote_path)
+        uploads = {}
+        with open(f"{DIR}/manifest","r") as manifest:
+            for line in manifest:
+                filename, change = line.split()
+                uploads[filename] = change
+        edits = ""
+        deletes = ""
+        for filename, change in uploads.items():
+            if change == "edit":
+                edits = edits + " " + filename
+                local_path = f"{DIR}/channels/{filename}"  # Path to the local file you want to transfer
+                remote_path = f"{remotePath}{filename}"  # Path on the remote server where you want to transfer the file
+                scp_transfer(hostIP, hostUser, privateKey, local_path, remote_path)
+            else:
+                deletes = deletes + " " + filename
+        message = commKey + edits + " DELETES" + deletes
+        send_message(hostIP,hostPort,message)
     set_state_var(Upload_Status,True,uploadLED)
     if os.path.isfile(f"{DIR}/manifest"):
         os.remove(f"{DIR}/manifest")
