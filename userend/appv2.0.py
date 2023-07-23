@@ -87,14 +87,11 @@ def is_valid_filename(filename):
     except OSError:
         return False
             
-def validate_channel_file(lines):
+def validate_channel_file(input):
+    lines = [line for line in input if (line != "" and not line.startswith("#"))] 
     if len(lines) == 0:
         return None
     for i,line in enumerate(lines):
-        if not line:
-            continue
-        if line.startswith("#"):
-            continue
         words = line.split()
         if len(words) != 2:
             return f"Wrong number of arguments:\nline {i}:\n\"{line}\""
@@ -284,7 +281,6 @@ def refresh_menu():
             popup_menu.add_radiobutton(label=option, variable=fileselect_var, value=option, command=on_popup_selected)
 
 def on_popup_selected():
-    global chn_dir
     refresh_menu()
     selected_option = fileselect_var.get()
     if selected_option:
