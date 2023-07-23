@@ -1,64 +1,49 @@
+from resources.config_handler import ConfigHandler
 from tkinter import simpledialog, messagebox
 import tkinter as tk
 from time import sleep
 import threading
+import paramiko
 import pygame
 import os
-import re
-
 '''Set the working directory of the file'''
 DIR = os.path.dirname(os.path.abspath(__file__))
 os.chdir(DIR)
 
-'''Load in settings.conf'''
-fail = False
-try:
-    settings = open(f"{DIR}/settings.conf","r")
-    sc = settings.readlines()
-except FileNotFoundError:
-    response = messagebox.askyesno("Critical Error", f"settings.conf couldn't be found. Load default settings instead?")
-    if response:
-        with open(f"{DIR}/resources/defaultsettings.conf","r") as default:
-            sc = default.readlines()
-        with open(f"{DIR}/settings.conf","w") as settings:
-            for line in sc:
-                settings.write(line)
-        messagebox.showinfo("Fixed Settings", f"Note that if there was a settings file, it has been reset.")
-    else:
-        exit(0)
-'''This part of the code is super gross but its banging - don't touch it'''
-try:
-    Font_Size = int(sc[0].strip().split()[1])
-except ValueError:
-    fail = True
-colors = []
-for i in range(1,5):
-    if fail == True:
-        break
-    color = sc[i].strip().split()[1]
-    if bool(re.match(r'^#([A-Fa-f0-9]{6})$', color)):
-        colors.append(color)
-    else:
-        fail = True
-if fail == True:
-    response = messagebox.askyesno("Critical Error", f"settings.conf could not be read properly. Load default settings instead?")
-    if response:
-        with open(f"{DIR}/resources/defaultsettings.conf","r") as default:
-            sc = default.readlines()
-        with open(f"{DIR}/settings.conf","w") as settings:
-            for line in sc:
-                settings.write(line)
-        colors = []
-        Font_Size = int(sc[0].strip().split()[1])
-        for i in range(1,5):
-            colors.append(sc[i].strip().split()[1])
-    else:
-        exit(0)
-Background_Color = colors[0]
-Text_Color = colors[1]
-Box_Color = colors[2]
-Button_Color = colors[3]
-LEDsize = 2 + Font_Size
+# Create an instance of ConfigHandler
+config_handler = ConfigHandler(config_file=f"{DIR}/settings.conf")
+
+# Expected parameter types
+fontsize: int
+backgroundColor: str
+textColor: str
+textboxColor: str
+buttonColor: str
+hostIP: str
+hostUser: str
+privateKey: str
+remotePath: str
+
+# Default parameters
+default_params = {
+    'fontsize': 12,
+    'backgroundColor': "#2F394D",
+    'textColor': "#FFD700",
+    'textboxColor': "#AE7A38",
+    'buttonColor': "#B0B0AA",
+    'hostIP': '192.168.50.42',
+    'hostUser': 'ethan',
+    'privateKey': '/home/epicpantalones/.ssh/id_rsa',
+    'remotePath': '/home/ethan/AutoFrog/server/received/'
+}
+
+# Read parameters from the configuration file
+for param_name, default_value in default_params.items():
+    value = config_handler.get_param(param_name, default_value)
+    # Assign the configuration value to the respective parameter
+    globals()[param_name] = value
+
+LEDsize = 2 + fontsize
 
 '''SOUND EFFECT GENERATION'''
 SOUND_ENABLED = True
@@ -69,6 +54,7 @@ def play_music():
 sound_thread = threading.Thread(target=play_music, daemon=True)
 
 ''' FUNCTIONS NOT ATTACHED TO BUTTONS '''
+
 SAVESTATE = True
 def save(state):
     if state not in [True,False]:
@@ -129,7 +115,7 @@ def validate_channel_file(lines):
             return f"\"{state}\" is not a valid state; either 0 or 1"
     return None
 
-def validate_assignments_file(lines):
+def validate_assignments__file(lines):
     if len(lines) != 9:
         return "Wrong number of lines in file"
     else:
@@ -144,7 +130,7 @@ def validate_assignments_file(lines):
                 return f"Wrong number of args on line {i} ({len(args)})"
             elif args[1] not in checks:
                 return f"{args[1]} is not one of the listed files"
-            elif args[1] == "_assignments":
+            elif args[1] == "_assignments_":
                 return f"cannot assign assignments file to itself (line {i})"
                 
     return
@@ -196,7 +182,7 @@ is a very loose definition.
 '''
 root = tk.Tk()
 root.title("Aperture Science Frog Connectivity Unit")
-root.configure(bg=Background_Color)
+root.configure(bg=backgroundColor)
 root.protocol("WM_DELETE_WINDOW", confirm_closing)
 root.minsize(575, 325)
 
@@ -209,6 +195,8 @@ def print_window_size():
 # Create Vars
 Connect_Status = tk.BooleanVar()
 Upload_Status = tk.BooleanVar()
+Save_Status = tk.BooleanVar()
+Working_File = tk.StringVar()
 
 '''
 LEFT FRAME:
@@ -232,11 +220,11 @@ AssistantSubframe (Top)
    Help (Left)
 
 '''
-left_frame = tk.Frame(root,bg=Background_Color)
+left_frame = tk.Frame(root,bg=backgroundColor)
 left_frame.pack(side=tk.LEFT, padx=10, pady=10)
 
 # Create the GUI Title
-fixed_text = tk.Label(left_frame, text="Aperature Science Frog\nConnectivity Unit", fg=Text_Color,background=Background_Color, font=('Arial', Font_Size+2))
+fixed_text = tk.Label(left_frame, text="Aperature Science Frog\nConnectivity Unit", fg=textColor,background=backgroundColor, font=('Arial', fontsize+2))
 fixed_text.pack(side=tk.TOP,anchor=tk.N,pady=5)
 
 ''' File Manager Subframe - List, New'''
@@ -265,7 +253,7 @@ def on_list_files_button_click():
     for file in files:
         text_box.insert(tk.END,f"{file}\n")
         
-list_button = tk.Button(filetools, text="List", command=on_list_files_button_click, bg=Button_Color, highlightthickness=0, font=('Arial', Font_Size))
+list_button = tk.Button(filetools, text="List", command=on_list_files_button_click, bg=buttonColor, highlightthickness=0, font=('Arial', fontsize))
 list_button.pack(side=tk.LEFT,padx=5,pady=5)
 
 # Create the "New Files" button
@@ -284,7 +272,7 @@ def on_newfile_button_click():
         return
     upload(False)
 
-new_button = tk.Button(filetools, text="New", command=on_newfile_button_click, bg=Button_Color, highlightthickness=0, font=('Arial', Font_Size))
+new_button = tk.Button(filetools, text="New", command=on_newfile_button_click, bg=buttonColor, highlightthickness=0, font=('Arial', fontsize))
 new_button.pack(side=tk.LEFT,padx=5,pady=5)
 
 # Create the File Select Button and File Select Dropdown
@@ -311,7 +299,7 @@ def on_popup_selected():
 fileselect_var = tk.StringVar()
 refresh_menu()
 
-file_select_button = tk.Button(left_frame, text="Select a file...", command=lambda: popup_menu.post(file_select_button.winfo_rootx(), file_select_button.winfo_rooty() + file_select_button.winfo_height()), bg=Button_Color, highlightthickness=0, font=('Arial', Font_Size))
+file_select_button = tk.Button(left_frame, text="Select a file...", command=lambda: popup_menu.post(file_select_button.winfo_rootx(), file_select_button.winfo_rooty() + file_select_button.winfo_height()), bg=buttonColor, highlightthickness=0, font=('Arial', fontsize))
 file_select_button.pack(side=tk.TOP,padx=10, pady=5)
 
 ''' Edit Menu Subframe - Edit, Delete, Save, Saved LED'''
@@ -324,7 +312,7 @@ def on_delete_button_click():
     if filename == "" or filename == "None":
         set_actionbar("No File Selected.")
         return
-    if filename == "_assignments":
+    if filename == "_assignments_":
         set_actionbar("Cannot Delete That.")
         return
     response = messagebox.askyesno("Confirm Delete", f"Are you sure you want to delete\n '{filename}'?")
@@ -336,7 +324,7 @@ def on_delete_button_click():
         upload(False)
         set_actionbar("Deleted File.")
 
-delete_button = tk.Button(edittools, text="Delete", command=on_delete_button_click, bg=Button_Color, highlightthickness=0, font=('Arial', Font_Size))
+delete_button = tk.Button(edittools, text="Delete", command=on_delete_button_click, bg=buttonColor, highlightthickness=0, font=('Arial', fontsize))
 delete_button.pack(side=tk.LEFT,padx=5, pady=5)
 
 # Create the "Edit" button
@@ -363,7 +351,7 @@ def on_edit_button_click():
         titlebar.insert(tk.END, filename)
         set_actionbar("Editing File...")
 
-edit_button = tk.Button(edittools, text="Edit", command=on_edit_button_click, bg=Button_Color, highlightthickness=0, font=('Arial', Font_Size))
+edit_button = tk.Button(edittools, text="Edit", command=on_edit_button_click, bg=buttonColor, highlightthickness=0, font=('Arial', fontsize))
 edit_button.pack(side=tk.LEFT,padx=5, pady=5)
 
 # Create the "Save" button
@@ -381,8 +369,8 @@ def on_save_button_click():
     go = True
     # if content and selected file don't match, confirm
     if WORKING_FILE != filename:
-        if filename == "_assignments" or WORKING_FILE == "_assignments":
-            messagebox.showinfo("Illegal", "Cannot write other file types to _assignments or vice versa.")
+        if filename == "_assignments_" or WORKING_FILE == "_assignments_":
+            messagebox.showinfo("Illegal", "Cannot write other file types to _assignments_ or vice versa.")
             set_actionbar("Error Saving File.")
             return
         response = messagebox.askyesno("Overwrite File", f"open file (\"{WORKING_FILE}\") and selected file (\"{filename}\") are not the same. Save anyways?")
@@ -392,12 +380,12 @@ def on_save_button_click():
         
         path = f"{DIR}/channels/{filename}"
         lines = content.splitlines()
-        if filename == "_assignments":
-            errormessage = validate_assignments_file(lines)
+        if filename == "_assignments_":
+            errormessage = validate_assignments__file(lines)
             if errormessage:
                 response = messagebox.askyesno("Compile Error", f"{errormessage}. Reset assigments file?")
                 if response:
-                    with open(f"{DIR}/channels/_assignments","w") as file:
+                    with open(f"{DIR}/channels/_assignments_","w") as file:
                         for i in range(1,9):
                             file.write(f"channel{i} <filename>\n")
                     messagebox.showinfo("Compile Error", "Reset assignments file. Press edit to reload, or fix and re-save.")
@@ -406,11 +394,11 @@ def on_save_button_click():
                     messagebox.showinfo("Compile Error", "Did not save assignments file.")
                     set_actionbar("Error Saving File.")
             else:
-                with open(f"{DIR}/channels/_assignments","w") as file:
+                with open(f"{DIR}/channels/_assignments_","w") as file:
                     for line in lines:
                         file.write(f"{line}\n")
                 set_actionbar("File Saved.")
-                add_to_manifest("_assignments","edit")
+                add_to_manifest("_assignments_","edit")
                 save(True)
                 upload(False)
         else:    
@@ -432,20 +420,20 @@ def on_save_button_click():
                 messagebox.showinfo(f"An error occurred while saving to the file: {e}")
                 set_actionbar("Error Saving File.")
 
-save_button = tk.Button(edittools, text="Save", command=on_save_button_click, bg=Button_Color, highlightthickness=0, font=('Arial', Font_Size))
+save_button = tk.Button(edittools, text="Save", command=on_save_button_click, bg=buttonColor, highlightthickness=0, font=('Arial', fontsize))
 save_button.pack(side=tk.LEFT,padx=5,pady=5)
 
 # Create the "Saved" LED
-savedLED = tk.Canvas(edittools, width=LEDsize, height=LEDsize,background=Background_Color, highlightthickness=0)
+savedLED = tk.Canvas(edittools, width=LEDsize, height=LEDsize,background=backgroundColor, highlightthickness=0)
 led = savedLED.create_oval(1, 1, LEDsize, LEDsize, fill="gray")
 savedLED.pack(side=tk.LEFT, pady=5)
 
 ''' Server Tools Subframe - Connect LED, Connect, Upload, Upload LED'''
-servertools = tk.Frame(left_frame,bg=Background_Color)
+servertools = tk.Frame(left_frame,bg=backgroundColor)
 servertools.pack(side=tk.TOP,padx=5, pady=10)
 
 # Create the "Connect" LED
-connectLED = tk.Canvas(servertools, width=LEDsize, height=LEDsize,background=Background_Color, highlightthickness=0)
+connectLED = tk.Canvas(servertools, width=LEDsize, height=LEDsize,background=backgroundColor, highlightthickness=0)
 led = connectLED.create_oval(1, 1, LEDsize, LEDsize, fill="red")
 connectLED.pack(side=tk.LEFT, pady=5)
 
@@ -455,30 +443,58 @@ def on_connect_button_click():
     upload(True)
     set_actionbar("Connected.")
 
-connect_button = tk.Button(servertools, text="Connect", command=on_connect_button_click, bg=Button_Color, highlightthickness=0, font=('Arial', Font_Size))
+connect_button = tk.Button(servertools, text="Connect", command=on_connect_button_click, bg=buttonColor, highlightthickness=0, font=('Arial', fontsize))
 connect_button.pack(side=tk.LEFT,anchor=tk.SW,padx=5,pady=5)
 
 # Create the "Upload" button
+def scp_transfer(hostname, username, private_key_path, local_path, remote_path):
+    # Create an SSH client
+    ssh_client = paramiko.SSHClient()
+    ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    try:
+        # Load the private key
+        private_key = paramiko.RSAKey.from_private_key_file(private_key_path)
+        # Connect to the SSH server using the private key
+        ssh_client.connect(hostname, username=username, pkey=private_key)
+        # Create an SCP client
+        scp_client = ssh_client.open_sftp()
+        # Perform the SCP transfer
+        scp_client.put(local_path, remote_path)
+        # Close the SCP client
+        scp_client.close()
+    finally:
+        # Close the SSH client
+        ssh_client.close()
+
 def on_upload_button_click():
     global UPLOAD_STATE
     if UPLOAD_STATE:
         set_actionbar("Nothing to Upload.")
         return
+    else:
+        uploads = sorted(os.listdir(f"{DIR}/channels"))
+        for file in uploads:
+            hostname = "192.168.50.42"  # Hostname or IP address of the remote server
+            username = "ethan"  # Username to connect to the remote server
+            private_key_path = "/home/epicpantalones/.ssh/id_rsa"  # Path to your private key file
+            local_path = f"{DIR}/channels/"  # Path to the local file you want to transfer
+            remote_path = "/home/ethan/AutoFrog/server/received/file_to_copy.txt"  # Path on the remote server where you want to transfer the file
+            scp_transfer(hostname, username, private_key_path, local_path, remote_path)
     upload(True)
     if os.path.isfile(f"{DIR}/manifest"):
         os.remove(f"{DIR}/manifest")
     set_actionbar("Uploaded.") 
 
-upload_button = tk.Button(servertools, text="Upload", command=on_upload_button_click, bg=Button_Color, highlightthickness=0, font=('Arial', Font_Size))
+upload_button = tk.Button(servertools, text="Upload", command=on_upload_button_click, bg=buttonColor, highlightthickness=0, font=('Arial', fontsize))
 upload_button.pack(side=tk.LEFT,anchor=tk.SW,padx=5,pady=5)
 
 # Create the "Connect" LED
-uploadLED = tk.Canvas(servertools, width=LEDsize, height=LEDsize,background=Background_Color, highlightthickness=0)
+uploadLED = tk.Canvas(servertools, width=LEDsize, height=LEDsize,background=backgroundColor, highlightthickness=0)
 led = uploadLED.create_oval(1, 1, LEDsize, LEDsize, fill="gray")
 uploadLED.pack(side=tk.LEFT, pady=5)
 
 ''' Assistant Subframe - Actionbar, Help '''
-assisttools = tk.Frame(left_frame,bg=Background_Color)
+assisttools = tk.Frame(left_frame,bg=backgroundColor)
 assisttools.pack(side=tk.TOP,padx=5, pady=5)
 
 # Create the "Actionbar"
@@ -486,7 +502,7 @@ def set_actionbar(text):
     actionbar.delete(1.0, tk.END)
     actionbar.insert(tk.END, text)
 
-actionbar = tk.Text(assisttools, height=1, width=25,fg=Text_Color, bg=Box_Color, highlightthickness=0, font=('Arial', Font_Size))
+actionbar = tk.Text(assisttools, height=1, width=25,fg=textColor, bg=textboxColor, highlightthickness=0, font=('Arial', fontsize))
 actionbar.bind("<Key>", lambda e: "break") # prevents users from editing textbox 
 actionbar.pack(side=tk.LEFT,pady=5,fill=tk.X)
 
@@ -509,7 +525,7 @@ def on_help_button_click():
         for line in content:
             text_box.insert(tk.END,line)  
 
-help_button = tk.Button(assisttools, text="help", command=on_help_button_click, bg=Button_Color, highlightthickness=0, font=('Arial', Font_Size))
+help_button = tk.Button(assisttools, text="help", command=on_help_button_click, bg=buttonColor, highlightthickness=0, font=('Arial', fontsize))
 help_button.pack(side=tk.LEFT,anchor=tk.SW,pady=5)
 
 '''
@@ -526,16 +542,16 @@ right_frame = tk.Frame(root,bg="#2F394D")
 right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=10, pady=10)
 
 # Create the "Titlebar"
-titlebar = tk.Text(right_frame, height=1, width=3,fg=Text_Color, bg=Box_Color, highlightthickness=0, font=('Arial', Font_Size))
+titlebar = tk.Text(right_frame, height=1, width=3,fg=textColor, bg=textboxColor, highlightthickness=0, font=('Arial', fontsize))
 titlebar.bind("<Key>", lambda e: "break") # prevents users from editing textbox 
 titlebar.pack(side=tk.TOP,pady=3,fill=tk.X)
 
 # Create the "Text" frame, which holds the text box and scroll bar
-texttools = tk.Frame(right_frame,bg=Background_Color)
+texttools = tk.Frame(right_frame,bg=backgroundColor)
 texttools.pack(side=tk.TOP,fill=tk.BOTH,expand=True,padx=5, pady=5)
 
 # Create the right text box
-text_box = tk.Text(texttools, height=10, width=30, fg=Text_Color, bg=Box_Color, highlightthickness=0, font=('Arial', Font_Size))
+text_box = tk.Text(texttools, height=10, width=30, fg=textColor, bg=textboxColor, highlightthickness=0, font=('Arial', fontsize))
 def on_text_change(args):
     save(False)
 text_box.bind("<KeyRelease>", on_text_change) # toggle the save state when edited.
