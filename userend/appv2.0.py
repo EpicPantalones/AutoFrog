@@ -54,31 +54,18 @@ def play_music():
 sound_thread = threading.Thread(target=play_music, daemon=True)
 
 ''' FUNCTIONS NOT ATTACHED TO BUTTONS '''
-
-SAVESTATE = True
-def save(state):
+def set_state_var(boolVar,state,LED=None):
     if state not in [True,False]:
         raise TypeError("state given incorrectly to save function.")
-    global SAVESTATE, WORKING_FILE
-    if WORKING_FILE == "":
-        return
-    else:
-        SAVESTATE = state
-        if state:
-            savedLED.itemconfig(led, fill="green")
-        else:
-            savedLED.itemconfig(led, fill="red")
-    
-UPLOAD_STATE = True
-def upload(state):
-    if state not in [True,False]:
-        raise TypeError("state given incorrectly to upload function.")
-    global UPLOAD_STATE
-    UPLOAD_STATE = state
+    boolVar.set(state)
+    if LED:
+        _set_state_LED(LED,state)
+
+def _set_state_LED(LED,state):
     if state:
-        uploadLED.itemconfig(led, fill="green")
+        LED.itemconfig(led, fill="green")
     else:
-        uploadLED.itemconfig(led, fill="red")
+        LED.itemconfig(led, fill="red")
 
 def add_to_manifest(filename,action):
     with open("manifest","a") as manifest:
@@ -147,20 +134,19 @@ def is_valid_time(time_str):
 
 ''' TO RUN ON PROGRAM CLOSE ''' 
 def confirm_closing():
-    global SAVESTATE, UPLOAD_STATE
-    if SAVESTATE == False:
+    if Save_Status.get() == False:
         response = messagebox.askyesno("Unsaved Work", f"You have not saved the open file.\nClose the program anyways?")
         if response:
-            SAVESTATE = True
+            set_state_var(Save_Status,True,savedLED)
         else:
             return
-    if UPLOAD_STATE == False:
+    if Upload_Status.get() == False:
         response = messagebox.askyesno("Unsaved Work", f"You have not uploaded your changes.\nClose the program anyways?")
         if response:
-            UPLOAD_STATE = True
+            set_state_var(Upload_Status,True,uploadLED)
         else:
             return
-    if SAVESTATE and UPLOAD_STATE:
+    if Save_Status.get() and Upload_Status.get():
         kill_program()   
            
 def kill_program():
@@ -194,9 +180,13 @@ def print_window_size():
 
 # Create Vars
 Connect_Status = tk.BooleanVar()
+Connect_Status.set(False)
 Upload_Status = tk.BooleanVar()
+Upload_Status.set(True)
 Save_Status = tk.BooleanVar()
+Save_Status.set(True)
 Working_File = tk.StringVar()
+Working_File.set("")
 
 '''
 LEFT FRAME:
@@ -233,13 +223,12 @@ filetools.pack(side=tk.TOP, padx=10, pady=10)
 
 # Create the "List Files" button
 def on_list_files_button_click():
-    global SAVESTATE
-    if SAVESTATE == False:
+    if Save_Status.get() == False:
         response = messagebox.askyesno("Unsaved Work", f"You have not saved the current file.\nList directory anyways?")
         if not response:
             return
         else:
-            save(True)
+            set_state_var(Save_Status,True,savedLED)
     titlebar.delete(1.0, tk.END)
     titlebar.insert(tk.END, "Directory List:")
     actionbar.delete(1.0, tk.END)
@@ -270,7 +259,7 @@ def on_newfile_button_click():
             messagebox.showinfo("Invalid Name", f"\"{user_input}\" is not a valid filename.")
     else:
         return
-    upload(False)
+    set_state_var(Upload_Status,False,uploadLED)
 
 new_button = tk.Button(filetools, text="New", command=on_newfile_button_click, bg=buttonColor, highlightthickness=0, font=('Arial', fontsize))
 new_button.pack(side=tk.LEFT,padx=5,pady=5)
@@ -321,7 +310,7 @@ def on_delete_button_click():
         add_to_manifest(filename,"delete")
         refresh_menu()
         file_select_button.config(text="Select a file...")
-        upload(False)
+        set_state_var(Upload_Status,False,uploadLED)
         set_actionbar("Deleted File.")
 
 delete_button = tk.Button(edittools, text="Delete", command=on_delete_button_click, bg=buttonColor, highlightthickness=0, font=('Arial', fontsize))
@@ -330,18 +319,18 @@ delete_button.pack(side=tk.LEFT,padx=5, pady=5)
 # Create the "Edit" button
 WORKING_FILE = ""
 def on_edit_button_click():
-    global SAVESTATE, WORKING_FILE
+    global WORKING_FILE
     filename = fileselect_var.get()
     if filename == "" or filename == "None":
         actionbar.delete(1.0, tk.END)
         actionbar.insert(tk.END, "No File Selected.")
         return
-    if SAVESTATE == False:
+    if Save_Status.get() == False:
         response = messagebox.askyesno("Unsaved Work", f"You have not saved the open file.\nSwitch files anyways?")
         if not response:
             return
         else:
-            save(True)
+            set_state_var(Save_Status,True,savedLED)
     with open(f"{DIR}/channels/{filename}","r") as file:
         text_box.delete("1.0", tk.END)
         for line in file:
@@ -399,8 +388,8 @@ def on_save_button_click():
                         file.write(f"{line}\n")
                 set_actionbar("File Saved.")
                 add_to_manifest("_assignments_","edit")
-                save(True)
-                upload(False)
+                set_state_var(Save_Status,True,savedLED)
+                set_state_var(Upload_Status,False,uploadLED)
         else:    
             errormessage = validate_channel_file(lines)
             if errormessage:
@@ -413,8 +402,8 @@ def on_save_button_click():
                     for line in lines:
                         file.write(f"{line}\n")
                 set_actionbar("File Saved.")
-                save(True)
-                upload(False)
+                set_state_var(Save_Status,True,savedLED)
+                set_state_var(Upload_Status,False,uploadLED)
                 add_to_manifest(filename,"edit")
             except Exception as e:
                 messagebox.showinfo(f"An error occurred while saving to the file: {e}")
@@ -440,7 +429,7 @@ connectLED.pack(side=tk.LEFT, pady=5)
 # Create the "Connect" button
 def on_connect_button_click():
     connectLED.itemconfig(led, fill="green")
-    upload(True)
+    set_state_var(Upload_Status,True,uploadLED)
     set_actionbar("Connected.")
 
 connect_button = tk.Button(servertools, text="Connect", command=on_connect_button_click, bg=buttonColor, highlightthickness=0, font=('Arial', fontsize))
@@ -467,20 +456,16 @@ def scp_transfer(hostname, username, private_key_path, local_path, remote_path):
         ssh_client.close()
 
 def on_upload_button_click():
-    global UPLOAD_STATE
-    if UPLOAD_STATE:
+    if Upload_Status.get():
         set_actionbar("Nothing to Upload.")
         return
     else:
         uploads = sorted(os.listdir(f"{DIR}/channels"))
         for file in uploads:
-            hostname = "192.168.50.42"  # Hostname or IP address of the remote server
-            username = "ethan"  # Username to connect to the remote server
-            private_key_path = "/home/epicpantalones/.ssh/id_rsa"  # Path to your private key file
-            local_path = f"{DIR}/channels/"  # Path to the local file you want to transfer
-            remote_path = "/home/ethan/AutoFrog/server/received/file_to_copy.txt"  # Path on the remote server where you want to transfer the file
-            scp_transfer(hostname, username, private_key_path, local_path, remote_path)
-    upload(True)
+            local_path = f"{DIR}/channels/{file}"  # Path to the local file you want to transfer
+            remote_path = f"{remotePath}file_to_copy.txt"  # Path on the remote server where you want to transfer the file
+            scp_transfer(hostIP, hostUser, privateKey, local_path, remote_path)
+    set_state_var(Upload_Status,True,uploadLED)
     if os.path.isfile(f"{DIR}/manifest"):
         os.remove(f"{DIR}/manifest")
     set_actionbar("Uploaded.") 
@@ -508,13 +493,12 @@ actionbar.pack(side=tk.LEFT,pady=5,fill=tk.X)
 
 # Create the "Help button
 def on_help_button_click():
-    global SAVESTATE
-    if SAVESTATE == False:
+    if Save_Status.get() == False:
         response = messagebox.askyesno("Unsaved Work", f"You have not saved the current file.\nOpen helpfile anyways?")
         if not response:
             return
         else:
-            save(True)
+            set_state_var(Save_Status,True,savedLED)
     titlebar.delete(1.0, tk.END)
     titlebar.insert(tk.END, "Help File:")
     actionbar.delete(1.0, tk.END)
@@ -553,7 +537,7 @@ texttools.pack(side=tk.TOP,fill=tk.BOTH,expand=True,padx=5, pady=5)
 # Create the right text box
 text_box = tk.Text(texttools, height=10, width=30, fg=textColor, bg=textboxColor, highlightthickness=0, font=('Arial', fontsize))
 def on_text_change(args):
-    save(False)
+    set_state_var(Save_Status,False,savedLED)
 text_box.bind("<KeyRelease>", on_text_change) # toggle the save state when edited.
 text_box.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 

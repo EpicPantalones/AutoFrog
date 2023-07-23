@@ -10,3 +10,7 @@ userend/channels/*
 userend/codechunks/
 userend/manifest
 userend/settings.conf
+
+#server ignores
+!server/received/
+server/received/*
