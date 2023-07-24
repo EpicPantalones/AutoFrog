@@ -11,6 +11,7 @@ userend/channels/*
 !userend/channels/-example-
 userend/codechunks/
 userend/manifest
+userend/resources/previous_edits.conf
 userend/settings.conf
 
 #server ignores
