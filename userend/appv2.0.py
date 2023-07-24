@@ -519,7 +519,7 @@ def on_upload_button_click():
             else:
                 deletes = deletes + " " + filename
         message = commKey + " EDITS" + edits + " DELETES" + deletes
-        send_message(hostIP,hostPort,message)
+        send_request(hostIP,hostPort,message)
     set_state_var(Upload_Status,True,uploadLED)
     if os.path.isfile(f"{DIR}/manifest"):
         os.remove(f"{DIR}/manifest")
@@ -613,7 +613,7 @@ This creates each of them with LEDs, buttons, and status bars.
 def on_button_click(row,state=False):
     global Chn_Subframes_List
     state_msg = "on" if state else "off"
-    if send_message(hostIP,hostPort,f"LIVECOMM {row} {state}"):
+    if send_request(hostIP,hostPort,f"LIVECOMM {row} {state}"):
         set_channel_update(Chn_Subframes_List[row][4],f"Turned channel {state_msg}.")
         set_livestatus_LED(Chn_Subframes_List[row][0],state)
     else:
