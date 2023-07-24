@@ -485,7 +485,7 @@ def on_connect_button_click():
     set_actionbar("Attempting...")
     success = ping_socket(hostIP,hostPort)
     color = "green" if success else "red"
-    msg = "Conntect." if success else "Couldn't connect."
+    msg = "Connected." if success else "Couldn't connect."
     connectLED.itemconfig(led, fill=color)
     set_state_var(Connect_Status,success,connectLED)
     set_actionbar(msg)
@@ -518,7 +518,7 @@ def on_upload_button_click():
                 scp_transfer(hostIP, hostUser, privateKey, local_path, remote_path)
             else:
                 deletes = deletes + " " + filename
-        message = commKey + " EDITS" + edits + " DELETES" + deletes
+        message = "UPDATEREGISTRY EDITS" + edits + " DELETES" + deletes
         send_request(hostIP,hostPort,message)
     set_state_var(Upload_Status,True,uploadLED)
     if os.path.isfile(f"{DIR}/manifest"):
@@ -711,5 +711,5 @@ if os.path.isfile(f"{DIR}/resources/previous_edits.conf"):
             for line in content:
                 manifest.write(line)
     os.remove(f"{DIR}/resources/previous_edits.conf")
-
+    Upload_Status.set(False)
 root.mainloop()
