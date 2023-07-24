@@ -172,7 +172,7 @@ def is_valid_time(time_str):
     return False 
 
 ''' TO RUN ON PROGRAM CLOSE ''' 
-def confirm_closing():
+def on_program_close():
     if Save_Status.get() == False:
         response = messagebox.askyesno("Unsaved Work", f"You have not saved the open file.\nClose the program anyways?")
         if response:
@@ -180,7 +180,7 @@ def confirm_closing():
         else:
             return
     if Upload_Status.get() == False:
-        response = messagebox.askyesno("Unsaved Work", f"You have not uploaded your changes.\nClose the program anyways?")
+        response = messagebox.askyesno("Unsaved Work", f"You have changes that have not been uploaded.\nClose the program anyways?")
         if response:
             set_state_var(Upload_Status,True,uploadLED)
         else:
@@ -215,7 +215,7 @@ is a very loose definition.
 root = tk.Tk()
 root.title("Aperture Science Frog Connectivity Unit")
 root.configure(bg=backgroundColor)
-root.protocol("WM_DELETE_WINDOW", confirm_closing)
+root.protocol("WM_DELETE_WINDOW", on_program_close)
 root.minsize(575, 325)
 
 # Debug Function
@@ -518,8 +518,10 @@ def on_upload_button_click():
                 scp_transfer(hostIP, hostUser, privateKey, local_path, remote_path)
             else:
                 deletes = deletes + " " + filename
-        message = "UPDATEREGISTRY EDITS" + edits + " DELETES" + deletes
-        send_request(hostIP,hostPort,message)
+        message = "UPDATEREGISTRY" + edits + " DELETES" + deletes
+        success, ret_msg = send_request(hostIP,hostPort,message)
+        if success == False:
+            messagebox.showinfo(f"Server returned an error:\n{ret_msg}")
     set_state_var(Upload_Status,True,uploadLED)
     if os.path.isfile(f"{DIR}/manifest"):
         os.remove(f"{DIR}/manifest")
@@ -589,12 +591,15 @@ def set_connection_failure():
         elements[0].itemconfig(led, fill="gray")
 
 def on_refresh_live_button_click():
-    success, message = send_request(hostIP,hostPort,f"REQUESTLIVESTATUS")
+    success, ret_msg = send_request(hostIP,hostPort,f"REQUESTLIVESTATUS")
     if success:
+        args = ret_msg.split()
         global Chn_Subframes_List
-        for i, channel in enumerate(message):
-            set_channel_update(Chn_Subframes_List[i][4],f"Channel turned {channel[0]} at {channel[1]}.")
+        for i in range(0,8):
+            state = "on" if args[i+1] == 1 else "off"
+            set_channel_update(Chn_Subframes_List[i][4],f"Channel is currently {state}.")
     else:
+        messagebox.showinfo(f"Server returned an error:\n{ret_msg}")    
         set_connection_failure()
 
 refresh_live_button = tk.Button(swap_menu_frame, text="Refresh", command=on_refresh_live_button_click, bg=buttonColor, highlightthickness=0, font=('Arial', fontsize))
