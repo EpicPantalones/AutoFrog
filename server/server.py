@@ -57,35 +57,33 @@ def handle_message(client_socket, message):
     print(f"Received message: \"{message}\"")
     OK = True
     args = message.split()
-    alen = len(args)
-    if alen < 2:
-        response = "vAkEoAYB0pd3nOW8XSOHzxRU87YmEB4KUGoJI1eLnJ7Tk58RPV"
+    commands = ["UPDATEREGISTRY","REQUESTLIVESTATUS","LIVECOMM"]
+    if args[0] not in commands:
+        response = "ERROR comm-not-recognized"
     else:
-        '''read command
-        this will read from the received directory
-        and make all the necessary changes to the
-        current directory and the reload the monitor'''
-        if args[0] == "read":
-            received = os.listdir(f"{CWD}/received")
-            current = os.listdir(f"{CWD}/current")
-            for file in received:
-                if file == "manifest.txt":
-                    new_chan = []
-                    with open(f"{CWD}/received/{file}","r") as manifest:
-                        for i in range(0,8):
-                            new_chan.append(manifest.readline().strip())
-                        print(new_chan)
-                        manifest.close()
-                    with open(f"{CWD}/channels.conf","w") as config:
-                        for channel in new_chan:
-                            config.write(f"{str(channel)}\n")
-                        config.close()
+        if args[0] == "UPDATEREGISTRY":
+            reached = False
+            edits = []
+            deletes = []
+            for i,arg in enumerate(args):
+                if i < 2:
+                    continue
+                if arg == "DELETES":
+                    reached = True
+                elif reached:
+                    deletes.append(arg)
                 else:
-                    os.system(f"cp {CWD}/received/{file} {CWD}/current/{file}")
-    
-    # Example: Sending a response back to the client
-    response = f"received {str(OK)}"
-    print(response)
+                    edits.append(arg)
+            # function that will update system
+            print(edits)
+            print(deletes)
+            response = "RECEIVED"
+        elif args[0] == "REQUESTLIVESTATUS":
+            # will need to create system to grab status...
+            response = "RECEIVED 1 0 1 0 1 0 1 0"
+        elif args[0] == "LIVECOMM":
+            # will need to create system to grab status...
+            response = "RECEIVED COMPLETE"
     client_socket.sendall(response.encode())
 
 # Usage example
