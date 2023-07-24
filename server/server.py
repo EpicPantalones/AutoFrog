@@ -76,8 +76,8 @@ def handle_message(client_socket, message):
                 else:
                     edits.append(arg)
             # function that will update system
-            print(edits)
-            print(deletes)
+            print(f"edits:{edits}")
+            print(f"deletes:{deletes}")
             response = "RECEIVED"
         elif args[0] == "REQUESTLIVESTATUS":
             # will need to create system to grab status...
