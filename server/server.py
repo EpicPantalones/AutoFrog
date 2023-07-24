@@ -67,7 +67,7 @@ def handle_message(client_socket, message):
             edits = []
             deletes = []
             for i,arg in enumerate(args):
-                if i < 2:
+                if i == 0:
                     continue
                 if arg == "DELETES":
                     reached = True
