@@ -1,0 +1,8 @@
+# CHANNEL NAME: example
+
+# turn on at 8 AM
+0800 1
+# set the duty cycle while it is on to 20 min per hour
+loop 20
+# turn off at 8 PM
+2000 0

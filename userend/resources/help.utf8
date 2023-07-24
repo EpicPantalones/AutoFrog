@@ -1,8 +1,11 @@
 Welcome to the Aperture Science Frog Connectivity Unit!
 The following tutorial will provide you with everything you need to know in order to use the connectivity unit properly.
 The first thing to note about the ASFCU is that it is a static GUI. What that means is that the screen of the GUI does not update in real time. When selecting files, creating new ones, or uploading, the GUI will not automatically change the screen.
+---Connection---
+When starting the program, ensure that the program can connect to the Aperture Science Frog Remote Controlled Monitor System (ASFRCMS). Do this by clicking the "connect" button.
+Unfortunately, there is no guaranteed way to tell where the connectivity problem is arising from. If you have connectivity issues, try looking at the program console to see where the error stems from.
 --- Commands ---
-Let's take a look at the available buttons on the ASFCU:
+Let's take a look at the available buttons / commands on the ASFCU:
   - List: this button will list all the files in the channels directory, which is where the files are stored.
   - New: this button allows you to create a new file, which comes with the default header. (see below, Files)
   - File Select: This text box allows you to select a file by typing in its name. If the file does not exist at savetime (see Save), a new file will be created.

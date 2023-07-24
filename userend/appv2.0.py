@@ -4,9 +4,9 @@ from tkinter import simpledialog, messagebox
 import tkinter as tk
 from time import sleep
 import threading
-import paramiko
 import pygame
 import os
+
 '''Set the working directory of the file'''
 DIR = os.path.dirname(os.path.abspath(__file__))
 os.chdir(DIR)
@@ -61,6 +61,27 @@ def play_music():
 sound_thread = threading.Thread(target=play_music, daemon=True)
 
 ''' FUNCTIONS NOT ATTACHED TO BUTTONS '''
+
+def swap_frame():
+    if Save_Status.get() == False:
+        response = messagebox.askyesno("Unsaved Work", f"You have not saved the open file.\nSwitch to Live View anyways?")
+        if response:
+            set_state_var(Save_Status,True,savedLED)
+        else:
+            return
+    if Curr_Frame.get() == 1:
+        left_frame.pack_forget()
+        text_box.delete("1.0",tk.END)
+        titlebar.delete("1.0",tk.END)
+        right_frame.pack_forget()
+        live_frame.pack(side=tk.LEFT,expand=True,fill=tk.BOTH, padx=10, pady=10,anchor = tk.NW)
+        Curr_Frame.set(2)
+    else:
+        live_frame.pack_forget()
+        left_frame.pack(side=tk.LEFT, padx=10, pady=10,anchor = tk.NW)
+        right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=10, pady=10)
+        Curr_Frame.set(1)
+
 def set_state_var(boolVar,state,LED=None):
     if state not in [True,False]:
         raise TypeError("state given incorrectly to save function.")
@@ -91,6 +112,8 @@ def validate_channel_file(input):
     lines = [line for line in input if (line != "" and not line.startswith("#"))] 
     if len(lines) == 0:
         return None
+    mx_time = 0
+    st_chk = 0
     for i,line in enumerate(lines):
         words = line.split()
         if len(words) != 2:
@@ -98,12 +121,23 @@ def validate_channel_file(input):
         try:
             time_str, state = words[0],words[1]
             state_val = int(state)
-            if is_valid_time(time_str) == False:
-                return f"\"{time_str}\" is not a valid time (0000 - 2359)"
-            if state_val not in [0,1]:
-                return f"\"{state}\" is not a valid state; either 0 or 1"
+            if is_valid_time(time_str) == False and time_str != "loop":
+                return f"L{i+1}: \"{time_str}\" is not a valid time (0000 - 2359)"
+            if time_str == "loop":
+                if st_chk == 0:
+                    return f"L{i+1}: program sets \"loop\" duty cycle while system is off"
+                if state_val not in range(1,60):
+                    return f"L{i+1}: \"{time_str}\" is not a valid looptime (1-59)"
+            else:
+                if int(time_str) < mx_time:
+                    return f"L{i+1}: \"{time_str}\" goes backwards in time; invalid."
+                if state_val not in [0,1]:
+                    return f"L{i+1}: \"{state}\" is not a valid state; either 0 or 1"
         except ValueError:
-            return f"\"{state}\" is not a valid state; either 0 or 1"
+            return f"L{i+1}: \"{state}\" is not a valid state; either 0 or 1"
+        st_chk = int(state)
+        if time_str != "loop":
+            mx_time = int(time_str)
     return None
 
 def validate_assignments_file(input):
@@ -122,7 +156,7 @@ def validate_assignments_file(input):
                 return f"Wrong number of args on line {i} ({len(args)})"
             elif args[1] not in checks:
                 return f"{args[1]} is not one of the listed files"
-            elif args[1] == "_assignments_":
+            elif args[1] == "-assignments-":
                 return f"cannot assign assignments file to itself (line {i})"
                 
     return
@@ -156,6 +190,13 @@ def confirm_closing():
            
 def kill_program():
     root.destroy()
+    if os.path.isfile(f"{DIR}/manifest"):
+        with open(f"{DIR}/manifest","r") as manifest:
+            content = manifest.readlines()
+            with open(f"{DIR}/resources/previous_edits.conf","w") as storage:
+                for line in content:
+                    storage.write(line)
+        os.remove(f"{DIR}/manifest")
     # Disable music and play closing sound
     if SOUND_ENABLED:
         pygame.mixer.music.stop()
@@ -192,6 +233,8 @@ Save_Status = tk.BooleanVar()
 Save_Status.set(True)
 Working_File = tk.StringVar()
 Working_File.set("")
+Curr_Frame = tk.IntVar()
+Curr_Frame.set(1)
 
 '''
 LEFT FRAME:
@@ -216,11 +259,15 @@ AssistantSubframe (Top)
 
 '''
 left_frame = tk.Frame(root,bg=backgroundColor)
-left_frame.pack(side=tk.LEFT, padx=10, pady=10)
+left_frame.pack(side=tk.LEFT, padx=10, pady=10,anchor = tk.NW)
+
+swap_frame_button = tk.Button(left_frame, text="Live Mode", command=swap_frame, bg=buttonColor, highlightthickness=0, font=('Arial', fontsize))
+swap_frame_button.pack(side=tk.TOP,anchor=tk.NW,padx=5,pady=5)
+
 
 # Create the GUI Title
 fixed_text = tk.Label(left_frame, text="Aperature Science Frog\nConnectivity Unit", fg=textColor,background=backgroundColor, font=('Arial', fontsize+2))
-fixed_text.pack(side=tk.TOP,anchor=tk.N,pady=5)
+fixed_text.pack(side=tk.TOP,pady=5)
 
 ''' File Manager Subframe - List, New'''
 filetools = tk.Frame(left_frame,bg="#2F394D")
@@ -305,7 +352,7 @@ def on_delete_button_click():
     if filename == "" or filename == "None":
         set_actionbar("No File Selected.")
         return
-    if filename == "_assignments_":
+    if filename == "-assignments-" or filename == "-example-":
         set_actionbar("Cannot Delete That.")
         return
     response = messagebox.askyesno("Confirm Delete", f"Are you sure you want to delete\n '{filename}'?")
@@ -329,7 +376,7 @@ def on_edit_button_click():
         actionbar.delete(1.0, tk.END)
         actionbar.insert(tk.END, "No File Selected.")
         return
-    if Save_Status.get() == False:
+    if Save_Status.get() == False and WORKING_FILE != "-example-":
         response = messagebox.askyesno("Unsaved Work", f"You have not saved the open file.\nSwitch files anyways?")
         if not response:
             return
@@ -343,6 +390,7 @@ def on_edit_button_click():
         titlebar.delete(1.0, tk.END)
         titlebar.insert(tk.END, filename)
         set_actionbar("Editing File...")
+        set_state_var(Save_Status,True,savedLED)
 
 edit_button = tk.Button(edittools, text="Edit", command=on_edit_button_click, bg=buttonColor, highlightthickness=0, font=('Arial', fontsize))
 edit_button.pack(side=tk.LEFT,padx=5, pady=5)
@@ -353,8 +401,10 @@ def on_save_button_click():
     filename = fileselect_var.get()
     # If no file selected, ignore
     if filename == "" or filename == "None":
-        actionbar.delete(1.0, tk.END)
-        actionbar.insert(tk.END, "No File Selected.")
+        set_actionbar("No file selected.")
+        return
+    if filename == "-example-":
+        set_actionbar("Cannot write to example.")
         return
     # If file selected, content is what's in the text box
     content = text_box.get("1.0", tk.END)
@@ -362,8 +412,8 @@ def on_save_button_click():
     go = True
     # if content and selected file don't match, confirm
     if WORKING_FILE != filename:
-        if filename == "_assignments_" or WORKING_FILE == "_assignments_":
-            messagebox.showinfo("Illegal", "Cannot write other file types to _assignments_ or vice versa.")
+        if filename == "-assignments-" or WORKING_FILE == "-assignments-":
+            messagebox.showinfo("Illegal", "Cannot write other files to assignments or vice versa.")
             set_actionbar("Error Saving File.")
             return
         response = messagebox.askyesno("Overwrite File", f"open file (\"{WORKING_FILE}\") and selected file (\"{filename}\") are not the same. Save anyways?")
@@ -373,12 +423,12 @@ def on_save_button_click():
         
         path = f"{DIR}/channels/{filename}"
         lines = content.splitlines()
-        if filename == "_assignments_":
+        if filename == "-assignments-":
             errormessage = validate_assignments_file(lines)
             if errormessage:
                 response = messagebox.askyesno("Compile Error", f"{errormessage}. Reset assigments file?")
                 if response:
-                    with open(f"{DIR}/channels/_assignments_","w") as file:
+                    with open(f"{DIR}/channels/-assignments-","w") as file:
                         for i in range(1,9):
                             file.write(f"channel{i} <filename>\n")
                     messagebox.showinfo("Compile Error", "Reset assignments file. Press edit to reload, or fix and re-save.")
@@ -387,11 +437,11 @@ def on_save_button_click():
                     messagebox.showinfo("Compile Error", "Did not save assignments file.")
                     set_actionbar("Error Saving File.")
             else:
-                with open(f"{DIR}/channels/_assignments_","w") as file:
+                with open(f"{DIR}/channels/-assignments-","w") as file:
                     for line in lines:
                         file.write(f"{line}\n")
                 set_actionbar("File Saved.")
-                add_to_manifest("_assignments_","edit")
+                add_to_manifest("-assignments-","edit")
                 set_state_var(Save_Status,True,savedLED)
                 set_state_var(Upload_Status,False,uploadLED)
         else:    
@@ -433,14 +483,12 @@ connectLED.pack(side=tk.LEFT, pady=5)
 # Create the "Connect" button
 def on_connect_button_click():
     set_actionbar("Attempting...")
-    if ping_socket(hostIP,hostPort,timeout=5):
-        connectLED.itemconfig(led, fill="green")
-        set_state_var(Connect_Status,True,connectLED)
-        set_actionbar("Connected.")
-    else:
-        connectLED.itemconfig(led, fill="red")
-        set_state_var(Connect_Status,False,connectLED)
-        set_actionbar("Couldn't connect.")
+    success = ping_socket(hostIP,hostPort)
+    color = "green" if success else "red"
+    msg = "Conntect." if success else "Couldn't connect."
+    connectLED.itemconfig(led, fill=color)
+    set_state_var(Connect_Status,success,connectLED)
+    set_actionbar(msg)
 
 connect_button = tk.Button(servertools, text="Connect", command=on_connect_button_click, bg=buttonColor, highlightthickness=0, font=('Arial', fontsize))
 connect_button.pack(side=tk.LEFT,anchor=tk.SW,padx=5,pady=5)
@@ -470,7 +518,7 @@ def on_upload_button_click():
                 scp_transfer(hostIP, hostUser, privateKey, local_path, remote_path)
             else:
                 deletes = deletes + " " + filename
-        message = commKey + edits + " DELETES" + deletes
+        message = commKey + " EDITS" + edits + " DELETES" + deletes
         send_message(hostIP,hostPort,message)
     set_state_var(Upload_Status,True,uploadLED)
     if os.path.isfile(f"{DIR}/manifest"):
@@ -520,6 +568,105 @@ help_button = tk.Button(assisttools, text="help", command=on_help_button_click, 
 help_button.pack(side=tk.LEFT,anchor=tk.SW,pady=5)
 
 '''
+LIVE COMMAND FRAME:
+This frame goes on the left side as an alternative to the main left frame.
+It is supposed to allow you to send live commands to the server to execute,
+as well as control the duty of the fan channel.
+'''
+
+live_frame = tk.Frame(root,bg=backgroundColor)
+
+swap_menu_frame = tk.Frame(live_frame,bg=backgroundColor)
+swap_menu_frame.pack(side=tk.TOP,anchor=tk.NW,padx=5,pady=5)
+
+swap_frame_button = tk.Button(swap_menu_frame, text="Channel Mode", command=swap_frame, bg=buttonColor, highlightthickness=0, font=('Arial', fontsize))
+swap_frame_button.pack(side=tk.LEFT,padx=5,pady=5)
+
+def set_connection_failure():
+    global Chn_Subframes_List
+    for elements in Chn_Subframes_List:
+        set_channel_update(elements[4],f"Failed to connect!")
+        elements[0].itemconfig(led, fill="gray")
+
+def on_refresh_live_button_click():
+    success, message = send_request(hostIP,hostPort,f"REQUESTLIVESTATUS")
+    if success:
+        global Chn_Subframes_List
+        for i, channel in enumerate(message):
+            set_channel_update(Chn_Subframes_List[i][4],f"Channel turned {channel[0]} at {channel[1]}.")
+    else:
+        set_connection_failure()
+
+refresh_live_button = tk.Button(swap_menu_frame, text="Refresh", command=on_refresh_live_button_click, bg=buttonColor, highlightthickness=0, font=('Arial', fontsize))
+refresh_live_button.pack(side=tk.LEFT,anchor=tk.SW,padx=5,pady=5)
+
+
+# Create the GUI Title
+fixed_text = tk.Label(live_frame, text="Live Command Frame", fg=textColor,background=backgroundColor, font=('Arial', fontsize+2))
+fixed_text.pack(side=tk.TOP,anchor=tk.N,pady=5)
+
+'''
+Subframe Setup for Live Mode
+There are eight identical subframes, one for each channel.
+This creates each of them with LEDs, buttons, and status bars.
+'''
+def on_button_click(row,state=False):
+    global Chn_Subframes_List
+    state_msg = "on" if state else "off"
+    if send_message(hostIP,hostPort,f"LIVECOMM {row} {state}"):
+        set_channel_update(Chn_Subframes_List[row][4],f"Turned channel {state_msg}.")
+        set_livestatus_LED(Chn_Subframes_List[row][0],state)
+    else:
+        set_connection_failure()
+ 
+def set_channel_update(element,message):
+    element.configure(state="normal")
+    element.delete("1.0",tk.END)
+    element.insert("1.0",message)
+    element.configure(state="disabled")
+    return
+
+def set_livestatus_LED(element,state=False):
+    global Chn_Subframes_List
+    if state:
+        element.itemconfig(led, fill="green")
+    else:
+        element.itemconfig(led, fill="red")
+
+def create_live_subframe(parent, row):
+    elements = []
+    chnLED = tk.Canvas(parent, width=LEDsize, height=LEDsize,background=backgroundColor, highlightthickness=0)
+    led = chnLED.create_oval(1, 1, LEDsize, LEDsize, fill="gray")
+    chnLED.pack(side=tk.LEFT, pady=5)
+    elements.append(chnLED)
+    chnLabel = tk.Label(parent, text=f"Channel {row+1}:",fg=textColor, bg=backgroundColor, highlightthickness=0, font=('Arial', fontsize+2))
+    chnLabel.pack(side=tk.LEFT, padx=5, pady=5)
+    elements.append(chnLabel)
+    chnON = tk.Button(parent, text=f"Turn On", command=lambda r=row: on_button_click(r,True))
+    chnON.pack(side=tk.LEFT, padx=5, pady=5)
+    elements.append(chnON)
+    chnOFF = tk.Button(parent, text=f"Turn Off", command=lambda r=row: on_button_click(r,False))
+    chnOFF.pack(side=tk.LEFT, padx=5, pady=5)
+    elements.append(chnOFF)
+    chnUpdater = tk.Text(parent, height=1, width=25,fg=textColor, bg=textboxColor, highlightthickness=0, font=('Arial', fontsize))
+    chnUpdater.bind("<Key>", lambda e: "break") # prevents users from editing textbox
+    chnUpdater.insert("1.0","Refresh to see status.")
+    chnUpdater.configure(state="disabled") 
+    chnUpdater.pack(side=tk.LEFT,pady=5,fill=tk.X)
+    elements.append(chnUpdater)
+    return elements
+    
+        
+# Create a list to store the subframes
+Chn_Subframes_List = []
+# Create eight identical subframes with buttons and stack them on top of each other
+for row in range(8):
+    subframe = tk.Frame(live_frame,bg=backgroundColor)
+    subframe.pack(side=tk.TOP,anchor=tk.N,fill=tk.X, padx=10, pady=10)
+    subframe_elements = create_live_subframe(subframe, row)
+    Chn_Subframes_List.append(subframe_elements)
+    
+'''
 RIGHT FRAME:
 The right frame contains a titlebar that displays the current file (if open),
 and a text box that can be edited to change the working file. The text box and
@@ -556,5 +703,13 @@ scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 '''PRODUCTION'''
 if SOUND_ENABLED:
     sound_thread.start()
-    
+
+if os.path.isfile(f"{DIR}/resources/previous_edits.conf"):
+    with open(f"{DIR}/resources/previous_edits.conf","r") as previous:
+        content = previous.readlines()
+        with open(f"{DIR}/manifest","w") as manifest:
+            for line in content:
+                manifest.write(line)
+    os.remove(f"{DIR}/resources/previous_edits.conf")
+
 root.mainloop()
