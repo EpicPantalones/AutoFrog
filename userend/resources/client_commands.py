@@ -30,6 +30,15 @@ def send_request(hostname, port, message):
         return True, response
     except (socket.timeout, ConnectionRefusedError):
         return False, None
+    
+def handle_server_response(message):
+    if message == None:
+        return None
+    args = message.split()
+    if args[0] == "ERROR":
+        return message
+    else:
+        return None
 
 def scp_transfer(hostname, username, private_key_path, local_path, remote_path):
     # Create an SSH client

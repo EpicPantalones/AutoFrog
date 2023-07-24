@@ -87,9 +87,9 @@ def set_state_var(boolVar,state,LED=None):
         raise TypeError("state given incorrectly to save function.")
     boolVar.set(state)
     if LED:
-        _set_state_LED(LED,state)
+        set_state_LED(LED,state)
 
-def _set_state_LED(LED,state):
+def set_state_LED(LED,state):
     if state:
         LED.itemconfig(led, fill="green")
     else:
@@ -430,7 +430,7 @@ def on_save_button_click():
                 if response:
                     with open(f"{DIR}/channels/-assignments-","w") as file:
                         for i in range(1,9):
-                            file.write(f"channel{i} <filename>\n")
+                            file.write(f"channel{i} -example-\n")
                     messagebox.showinfo("Compile Error", "Reset assignments file. Press edit to reload, or fix and re-save.")
                     set_actionbar("Error Saving File.")
                 else:
@@ -520,8 +520,12 @@ def on_upload_button_click():
                 deletes = deletes + " " + filename
         message = "UPDATEREGISTRY" + edits + " DELETES" + deletes
         success, ret_msg = send_request(hostIP,hostPort,message)
-        if success == False:
+        if handle_server_response(ret_msg):
             messagebox.showinfo(f"Server returned an error:\n{ret_msg}")
+        if success == False:
+            set_actionbar("Couldn't connect!")
+            set_state_LED(connectLED,False)
+            return
     set_state_var(Upload_Status,True,uploadLED)
     if os.path.isfile(f"{DIR}/manifest"):
         os.remove(f"{DIR}/manifest")
@@ -586,20 +590,25 @@ swap_frame_button.pack(side=tk.LEFT,padx=5,pady=5)
 
 def set_connection_failure():
     global Chn_Subframes_List
+    set_state_LED(connectLED,False)
     for elements in Chn_Subframes_List:
         set_channel_update(elements[4],f"Failed to connect!")
         elements[0].itemconfig(led, fill="gray")
 
 def on_refresh_live_button_click():
     success, ret_msg = send_request(hostIP,hostPort,f"REQUESTLIVESTATUS")
+    if handle_server_response(ret_msg):
+        messagebox.showinfo(f"Server returned an error:\n{ret_msg}")
     if success:
         args = ret_msg.split()
+        print(args)
         global Chn_Subframes_List
         for i in range(0,8):
-            state = "on" if args[i+1] == 1 else "off"
+            state = "on" if int(args[i+1]) == 1 else "off"
+            LEDstate = True if int(args[i+1]) == 1 else False
             set_channel_update(Chn_Subframes_List[i][4],f"Channel is currently {state}.")
-    else:
-        messagebox.showinfo(f"Server returned an error:\n{ret_msg}")    
+            set_livestatus_LED(Chn_Subframes_List[i][0],LEDstate)
+    else:   
         set_connection_failure()
 
 refresh_live_button = tk.Button(swap_menu_frame, text="Refresh", command=on_refresh_live_button_click, bg=buttonColor, highlightthickness=0, font=('Arial', fontsize))
@@ -618,7 +627,10 @@ This creates each of them with LEDs, buttons, and status bars.
 def on_button_click(row,state=False):
     global Chn_Subframes_List
     state_msg = "on" if state else "off"
-    if send_request(hostIP,hostPort,f"LIVECOMM {row} {state}"):
+    success, ret_msg = send_request(hostIP,hostPort,f"LIVECOMM {row} {state}")
+    if handle_server_response(ret_msg):
+        messagebox.showinfo(f"Server returned an error:\n{ret_msg}")    
+    if success:
         set_channel_update(Chn_Subframes_List[row][4],f"Turned channel {state_msg}.")
         set_livestatus_LED(Chn_Subframes_List[row][0],state)
     else:
