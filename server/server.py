@@ -57,6 +57,7 @@ def handle_message(client_socket, message):
     print(f"Received message: \"{message}\"")
     OK = True
     args = message.split()
+    print(args)
     commands = ["UPDATEREGISTRY","REQUESTLIVESTATUS","LIVECOMM"]
     if args[0] not in commands:
         response = "ERROR comm-not-recognized"
