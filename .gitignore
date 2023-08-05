@@ -3,6 +3,7 @@ __pycache__/
 # ignore user generated server files
 server/configs/*
 server/received/*
+server/*.log
 
 #userend ignores
 !userend/channels/
