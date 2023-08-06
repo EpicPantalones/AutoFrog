@@ -1,10 +1,13 @@
 from resources.config_handler import ConfigHandler
 from resources.client_commands import *
 from tkinter import simpledialog, messagebox
-import tkinter as tk
+from pygame import mixer
 from time import sleep
+import tkinter as tk
 import threading
 import pygame
+import random
+import ctypes
 import os
 
 '''Set the working directory of the file'''
@@ -52,17 +55,26 @@ fontsize = int(fontsize)
 hostPort = int(hostPort)
 LEDsize = 2 + fontsize
 
+mixer.init()
 '''SOUND EFFECT GENERATION'''
 SOUND_ENABLED = True
 def play_music():
-    pygame.mixer.init()
-    pygame.mixer.music.load("./resources/soundtrack.wav")
-    pygame.mixer.music.play(-1)  # -1 plays the sound on an infinite loop
+    mixer.music.load(f"{DIR}/resources/soundtrack.wav")
+    mixer.music.play(-1)  # -1 plays the sound on an infinite loop
 sound_thread = threading.Thread(target=play_music, daemon=True)
+
+def play_button_sound():
+    sound = random.randint(0, 1)
+    if sound == 0:
+        button_sound = mixer.Sound(f"{DIR}/resources/button_1.wav")  # Replace with your button sound effect file
+    else:
+        button_sound = mixer.Sound(f"{DIR}/resources/button_1.wav")
+    button_sound.play()
 
 ''' FUNCTIONS NOT ATTACHED TO BUTTONS '''
 
 def swap_frame():
+    play_button_sound()
     if Save_Status.get() == False:
         response = messagebox.askyesno("Unsaved Work", f"You have not saved the open file.\nSwitch to Live View anyways?")
         if response:
@@ -115,49 +127,69 @@ def validate_channel_file(input):
     mx_time = 0
     st_chk = 0
     for i,line in enumerate(lines):
-        words = line.split()
-        if len(words) != 2:
+        args = line.split()
+        if len(args) != 2:
             return f"Wrong number of arguments:\nline {i}:\n\"{line}\""
         try:
-            time_str, state = words[0],words[1]
-            state_val = int(state)
+            time_str, state = args[0], args[1]
             if is_valid_time(time_str) == False and time_str != "loop":
                 return f"L{i+1}: \"{time_str}\" is not a valid time (0000 - 2359)"
             if time_str == "loop":
                 if st_chk == 0:
                     return f"L{i+1}: program sets \"loop\" duty cycle while system is off"
-                if state_val not in range(1,60):
+                if int(state) not in range(1,60):
                     return f"L{i+1}: \"{time_str}\" is not a valid looptime (1-59)"
             else:
+                if str(state) not in ['On','Off','1','0','on','off','ON','OFF']:
+                    return f"L{i+1}: \"{state}\" is not a valid state;\n\"On\", \"Off\", 0, or 1."
                 if int(time_str) < mx_time:
                     return f"L{i+1}: \"{time_str}\" goes backwards in time; invalid."
-                if state_val not in [0,1]:
-                    return f"L{i+1}: \"{state}\" is not a valid state; either 0 or 1"
+                if str(state) in ['On','1','on','ON'] and st_chk == 1:
+                    return f"L{i+1}: Cannot turn on when already on."
+                if str(state) in ['Off','0','off','OFF'] and st_chk == 0:
+                    return f"L{i+1}: Cannot turn off when already off."
+                if str(state) in ['On','1','on','ON']:
+                    st_chk = 1
+                else:
+                    st_chk = 0
         except ValueError:
-            return f"L{i+1}: \"{state}\" is not a valid state; either 0 or 1"
-        st_chk = int(state)
+            return f"L{i+1}: When using loop, state must be int between 1 and 60."
         if time_str != "loop":
             mx_time = int(time_str)
     return None
 
+
 def validate_assignments_file(input):
-    lines = [line for line in input if line != ""]
-    if len(lines) != 8:
-        return "Wrong number of lines in file"
-    else:
-        checks = os.listdir(f"{DIR}/channels")
-        for i,line in enumerate(lines):
-            if i > 7:
-                continue
-            args = line.split()
-            if args[0] != f"channel{i+1}":
-                return f"Bad modify: {args[0]} not a valid name; should be \"channel{i}\""
-            if len(args) != 2:
-                return f"Wrong number of args on line {i} ({len(args)})"
-            elif args[1] not in checks:
-                return f"{args[1]} is not one of the listed files"
-            elif args[1] == "-assignments-":
-                return f"cannot assign assignments file to itself (line {i})"
+    lines = [line for line in input if (line != "" and not line.startswith("#"))]
+    c_names = [f'channel{i}' for i in range(1,9)]
+    validate = [[False for _ in range (0,7)] for _ in range(0,8)]
+    f_names = os.listdir(f"{DIR}/channels")
+    for i,line in enumerate(lines):
+        args = line.split()
+        if args[0] not in c_names:
+            return f"Bad modify: {args[0]} not a valid name; should be \"channel{i}\""
+        if len(args) != 3:
+            return f"Wrong number of args on line {i} ({len(args)})"
+        elif args[1] not in f_names:
+            return f"{args[1]} is not one of the listed files"
+        elif args[1] == "-assignments-":
+            return f"cannot assign assignments file to itself (line {i})"
+        elif not all(char in 'MtWTFsS' for char in args[2]):
+            invalid_chars = [char for char in args[2] if char not in "MtWTFsS"]
+            return f"invalid day given with the following char(s):\n{invalid_chars}"
+        else:
+            cidx = int(args[0][-1]) - 1
+            print(f"channel: {cidx}")
+            days = "MtWTFsS"
+            # ADD SUPPORT FOR "A" CHAR
+            for char in args[2]:
+                didx = days.index(char)
+                print(f"    day {didx}")
+                if validate[cidx][didx]:
+                    return f"Channel {cidx+1} has multiple files assigned to the same day"
+                validate[cidx][didx] = True
+    if not all(all(channel) for channel in validate):
+        return f"not all channels have 7 day assignements:\nCheck that all channel have a file to run"
                 
     return
 
@@ -275,6 +307,7 @@ filetools.pack(side=tk.TOP, padx=10, pady=10)
 
 # Create the "List Files" button
 def on_list_files_button_click():
+    play_button_sound()
     if Save_Status.get() == False:
         response = messagebox.askyesno("Unsaved Work", f"You have not saved the current file.\nList directory anyways?")
         if not response:
@@ -299,6 +332,7 @@ list_button.pack(side=tk.LEFT,padx=5,pady=5)
 
 # Create the "New Files" button
 def on_newfile_button_click():
+    play_button_sound()
     user_input = simpledialog.askstring("Create File", "Enter a filename:")
     if user_input:
         if is_valid_filename(user_input):
@@ -328,6 +362,7 @@ def refresh_menu():
             popup_menu.add_radiobutton(label=option, variable=fileselect_var, value=option, command=on_popup_selected)
 
 def on_popup_selected():
+    play_button_sound()
     refresh_menu()
     selected_option = fileselect_var.get()
     if selected_option:
@@ -348,6 +383,7 @@ edittools.pack(side=tk.TOP, padx=5, pady=5)
 
 # Create the "Delete" button
 def on_delete_button_click():
+    play_button_sound()
     filename = fileselect_var.get()
     if filename == "" or filename == "None":
         set_actionbar("No File Selected.")
@@ -370,6 +406,7 @@ delete_button.pack(side=tk.LEFT,padx=5, pady=5)
 # Create the "Edit" button
 WORKING_FILE = ""
 def on_edit_button_click():
+    play_button_sound()
     global WORKING_FILE
     filename = fileselect_var.get()
     if filename == "" or filename == "None":
@@ -397,6 +434,7 @@ edit_button.pack(side=tk.LEFT,padx=5, pady=5)
 
 # Create the "Save" button
 def on_save_button_click():
+    play_button_sound()
     global WORKING_FILE
     filename = fileselect_var.get()
     # If no file selected, ignore
@@ -482,6 +520,7 @@ connectLED.pack(side=tk.LEFT, pady=5)
 
 # Create the "Connect" button
 def on_connect_button_click():
+    play_button_sound()
     set_actionbar("Attempting...")
     success = ping_socket(hostIP,hostPort)
     color = "green" if success else "red"
@@ -495,6 +534,7 @@ connect_button.pack(side=tk.LEFT,anchor=tk.SW,padx=5,pady=5)
 
 # Create the "Upload" button
 def on_upload_button_click():
+    play_button_sound()
     if Connect_Status.get() == False:
         set_actionbar("Not Connected!")
         return
@@ -554,6 +594,7 @@ actionbar.pack(side=tk.LEFT,pady=5,fill=tk.X)
 
 # Create the "Help button
 def on_help_button_click():
+    play_button_sound()
     if Save_Status.get() == False:
         response = messagebox.askyesno("Unsaved Work", f"You have not saved the current file.\nOpen helpfile anyways?")
         if not response:
@@ -596,6 +637,7 @@ def set_connection_failure():
         elements[0].itemconfig(led, fill="gray")
 
 def on_refresh_live_button_click():
+    play_button_sound()
     success, ret_msg = send_request(hostIP,hostPort,f"REQUESTLIVESTATUS")
     if handle_server_response(ret_msg):
         messagebox.showinfo(f"Server returned an error:\n{ret_msg}")
@@ -625,6 +667,7 @@ There are eight identical subframes, one for each channel.
 This creates each of them with LEDs, buttons, and status bars.
 '''
 def on_button_click(row,state=False):
+    play_button_sound()
     global Chn_Subframes_List
     state_msg = "on" if state else "off"
     success, ret_msg = send_request(hostIP,hostPort,f"LIVECOMM {row} {state}")
