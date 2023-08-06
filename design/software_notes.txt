@@ -1,4 +1,0 @@
-config files are blocks of numbers reprenting a time and an action.
-daemon loads in each block and runs in the background, looking for events
-to change something, have interface.py have a reload button. SSH in to mess
-with configs, not worth doing it in the actual html.
