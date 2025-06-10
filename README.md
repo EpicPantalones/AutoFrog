@@ -1,5 +1,7 @@
 # AutoFrog
 Welcome to AutoFrog.
+
+This project has been deprecated in favor of AutoFrog 2.0, which is another repository I own.
 ## File Tree
 ### design
 contains design files, commentary, etc. as well as the project overview and software/hardware descriptions.
